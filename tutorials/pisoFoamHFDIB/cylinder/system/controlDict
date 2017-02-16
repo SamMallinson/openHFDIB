@@ -43,9 +43,9 @@ timeFormat      general;
 
 timePrecision   6;
 
-MaxCo           1.0;
+maxCo           1.0;
 
-MaxDeltaT       0.0001;
+maxDeltaT       0.0001;
 
 adjustableTimeStep  true;
 
