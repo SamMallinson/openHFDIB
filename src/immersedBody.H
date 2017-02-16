@@ -54,7 +54,7 @@ Contributors
 
 namespace Foam
 {
- enum {STATICBODY , ROTATINGBODY};
+ enum {STATICBODY , ROTATINGBODY, TRANSLATINGBODY};
  
  class immersedBody
  {
@@ -99,6 +99,9 @@ namespace Foam
    
    //Rotate immersed body
    void rotateImmersedBody();
+   
+   //Translate immersed body
+   void translateImmersedBody();
    
    //Reset body field
    void resetBody(volScalarField& body);

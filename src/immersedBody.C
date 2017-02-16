@@ -74,6 +74,7 @@ mesh_(mesh)
 //Return if devlared static 
  if(immersedDict_.found("staticBody") )            bodyOperation_=STATICBODY;
  else if(immersedDict_.found("rotatingBody"))   bodyOperation_=ROTATINGBODY;
+ else if(immersedDict_.found("translatingBody"))   bodyOperation_=TRANSLATINGBODY;
  else
  {
   Info << "No body operation was found for " << fileName <<". Assuming static body.";
@@ -150,6 +151,11 @@ void immersedBody::updateImmersedBody(volScalarField& body )
   resetBody(body);
   rotateImmersedBody();
  }
+ else if(bodyOperation_==TRANSLATINGBODY)
+ {
+  resetBody(body);
+  translateImmersedBody();
+ }
  //TODO:Very inefficient find other algorithm
  createImmersedBody(body);
  
@@ -165,7 +171,7 @@ void immersedBody::calculateInterpolationPoints(volScalarField& body,
   //clear previous
   interpolationPoints_.clear();
   interpolationCells_.clear();
-  
+
   //Create temporary surface normals
   volVectorField surfNorm(-fvc::grad(body));
      
@@ -209,7 +215,6 @@ void immersedBody::calculateInterpolationPoints(volScalarField& body,
     if(!(search_.isInside(interpolationPoints_[cell][order+1])) ) cellI = -1;
     interpolationCells_[cell].push_back(cellI);
    }
-  
   }
  
 }
@@ -242,6 +247,40 @@ void immersedBody::rotateImmersedBody()
   bodyPoints[p] = (bodyPoints[p] - axis*((bodyPoints[p]-center)&axis))
                   * magDist/mag(bodyPoints[p] - axis*((bodyPoints[p]-center)&axis)) + 
                    axis*((bodyPoints[p]-center)&axis);
+
+ 
+ }
+ 
+ //move mesh
+ bodySurfMesh_->movePoints(bodyPoints);
+ 
+
+}
+//---------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
+//Translate immersed body
+void immersedBody::translateImmersedBody()
+{
+ 
+ //Get basic quantities from dict
+ vector velocity   = immersedDict_.subDict("translatingBody").lookup("velocity");
+ 
+ //get the angle 
+ vector displacement  = velocity*mesh_.time().deltaT().value();
+ 
+ pointField bodyPoints (bodySurfMesh_->points());
+ 
+ //Move points
+ forAll(bodyPoints,p)
+ {
+  
+  //Move in tangential direction
+  bodyPoints[p] = bodyPoints[p] + displacement;
+  
+  //Rescale
+  //bodyPoints[p] = (bodyPoints[p] - axis*((bodyPoints[p]-center)&axis))
+                  //* magDist/mag(bodyPoints[p] - axis*((bodyPoints[p]-center)&axis)) + 
+                   //axis*((bodyPoints[p]-center)&axis);
 
  
  }
@@ -314,6 +353,31 @@ void immersedBody::updateVectoField(volVectorField & VS, word Vname)
 
    
    }
+   else if(bodyOperation_==TRANSLATINGBODY)
+   {
+
+    //Get basic quantities from dict
+    vector velocity   = immersedDict_.subDict("translatingBody").lookup("velocity");
+
+    //Apply for internal cells
+    for(unsigned int cell=0;cell<intCells_.size();cell++)
+    {
+     label cellI            = intCells_[cell];
+     VS[cellI] = velocity;
+
+    }
+
+    //Apply for surface cells (here should apply the surface value)
+    for(unsigned int cell=0;cell<surfCells_.size();cell++)
+    {
+     label cellI            = surfCells_[cell];
+     VS[cellI] = velocity;
+
+    }
+
+
+   }
+
   
   }
 
